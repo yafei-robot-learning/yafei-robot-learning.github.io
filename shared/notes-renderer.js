@@ -15,6 +15,157 @@ function renderInlineText(text) {
   return escapeHtml(text).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 }
 
+const pythonKeywords = new Set([
+  'and',
+  'as',
+  'assert',
+  'async',
+  'await',
+  'break',
+  'class',
+  'continue',
+  'def',
+  'del',
+  'elif',
+  'else',
+  'except',
+  'False',
+  'finally',
+  'for',
+  'from',
+  'global',
+  'if',
+  'import',
+  'in',
+  'is',
+  'lambda',
+  'None',
+  'nonlocal',
+  'not',
+  'or',
+  'pass',
+  'raise',
+  'return',
+  'True',
+  'try',
+  'while',
+  'with',
+  'yield',
+]);
+
+const pythonBuiltins = new Set([
+  'abs',
+  'bool',
+  'breakpoint',
+  'dict',
+  'enumerate',
+  'float',
+  'int',
+  'len',
+  'list',
+  'max',
+  'min',
+  'np',
+  'print',
+  'range',
+  'self',
+  'set',
+  'str',
+  'sum',
+  'tuple',
+  'zeros',
+]);
+
+function renderPythonCode(code) {
+  let html = '';
+  let index = 0;
+
+  const appendToken = (className, value) => {
+    html += `<span class="${className}">${escapeHtml(value)}</span>`;
+  };
+
+  while (index < code.length) {
+    const rest = code.slice(index);
+    const char = code[index];
+    const tripleQuote = rest.startsWith('"""') ? '"""' : rest.startsWith("'''") ? "'''" : null;
+
+    if (char === '#') {
+      const endIndex = code.indexOf('\n', index);
+      const nextIndex = endIndex === -1 ? code.length : endIndex;
+      appendToken('syntax-comment', code.slice(index, nextIndex));
+      index = nextIndex;
+      continue;
+    }
+
+    if (tripleQuote) {
+      const endIndex = code.indexOf(tripleQuote, index + 3);
+      const nextIndex = endIndex === -1 ? code.length : endIndex + 3;
+      appendToken('syntax-string', code.slice(index, nextIndex));
+      index = nextIndex;
+      continue;
+    }
+
+    if (char === '"' || char === "'") {
+      let nextIndex = index + 1;
+      while (nextIndex < code.length) {
+        if (code[nextIndex] === '\\') {
+          nextIndex += 2;
+          continue;
+        }
+
+        if (code[nextIndex] === char) {
+          nextIndex += 1;
+          break;
+        }
+
+        if (code[nextIndex] === '\n') {
+          break;
+        }
+
+        nextIndex += 1;
+      }
+
+      appendToken('syntax-string', code.slice(index, nextIndex));
+      index = nextIndex;
+      continue;
+    }
+
+    const numberMatch = rest.match(/^\b\d+(?:\.\d+)?\b/);
+    if (numberMatch) {
+      appendToken('syntax-number', numberMatch[0]);
+      index += numberMatch[0].length;
+      continue;
+    }
+
+    const identifierMatch = rest.match(/^[A-Za-z_][A-Za-z0-9_]*/);
+    if (identifierMatch) {
+      const value = identifierMatch[0];
+      if (pythonKeywords.has(value)) {
+        appendToken('syntax-keyword', value);
+      } else if (pythonBuiltins.has(value)) {
+        appendToken('syntax-builtin', value);
+      } else {
+        html += escapeHtml(value);
+      }
+      index += value.length;
+      continue;
+    }
+
+    html += escapeHtml(char);
+    index += 1;
+  }
+
+  return html;
+}
+
+function renderCodeBlock(block) {
+  const language = sanitizeLabel(block.language || '').toLowerCase();
+  const languageClass = language ? ` language-${escapeHtml(language)}` : '';
+  const code = language === 'python' || language === 'py' ? renderPythonCode(block.text) : escapeHtml(block.text);
+
+  return `<pre class="code-block"><code class="syntax-code${languageClass}">${code}</code></pre>`;
+}
+
 function buildBlocks(markdown) {
   const lines = stripHtmlComments(markdown).replace(/\r\n/g, '\n').split('\n');
   const blocks = [];
@@ -23,10 +174,13 @@ function buildBlocks(markdown) {
   let algorithmLines = [];
   let itemizeLines = [];
   let figureLines = [];
+  let codeLines = [];
   let inMath = false;
   let inAlgorithm = false;
   let inItemize = false;
   let inFigure = false;
+  let inCode = false;
+  let codeLanguage = '';
   let itemizeDepth = 0;
 
   const flushParagraph = () => {
@@ -72,6 +226,12 @@ function buildBlocks(markdown) {
 
     blocks.push({ type: 'figure', text: figureLines.join('\n') });
     figureLines = [];
+  };
+
+  const flushCode = () => {
+    blocks.push({ type: 'code', text: codeLines.join('\n'), language: codeLanguage });
+    codeLines = [];
+    codeLanguage = '';
   };
 
   const appendParagraphText = (text) => {
@@ -149,6 +309,25 @@ function buildBlocks(markdown) {
       continue;
     }
 
+    if (inCode) {
+      if (trimmed.startsWith('```')) {
+        flushCode();
+        inCode = false;
+        continue;
+      }
+
+      codeLines.push(line);
+      continue;
+    }
+
+    if (trimmed.startsWith('```')) {
+      flushParagraph();
+      inCode = true;
+      codeLanguage = trimmed.slice(3).trim();
+      codeLines = [];
+      continue;
+    }
+
     if (trimmed.startsWith('\\begin{algorithm}')) {
       flushParagraph();
       inAlgorithm = true;
@@ -222,6 +401,11 @@ function buildBlocks(markdown) {
       continue;
     }
 
+    if (trimmed === '<div align="center">' || trimmed === '</div>') {
+      flushParagraph();
+      continue;
+    }
+
     if (line.startsWith('# ')) {
       flushParagraph();
       blocks.push({ type: 'heading', level: 1, text: line.slice(2).trim() });
@@ -253,6 +437,9 @@ function buildBlocks(markdown) {
   flushAlgorithm();
   flushItemize();
   flushFigure();
+  if (inCode || codeLines.length > 0) {
+    flushCode();
+  }
 
   return blocks;
 }
@@ -595,6 +782,10 @@ async function renderMarkdownNote(fileName, content) {
 
         if (block.type === 'image') {
           return renderImage(block.text, fileName);
+        }
+
+        if (block.type === 'code') {
+          return renderCodeBlock(block);
         }
 
         return `<p>${renderInlineText(block.text)}</p>`;

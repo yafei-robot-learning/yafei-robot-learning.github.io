@@ -424,6 +424,47 @@ body::before {
   white-space: normal;
 }
 
+.code-block {
+  margin: 1.15rem 0 1.35rem;
+  padding: 1rem;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fafafa;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+.code-block code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  font-size: 0.92rem;
+  line-height: 1.65;
+  color: #24292f;
+  white-space: pre;
+  background: transparent;
+}
+
+.syntax-comment {
+  color: #6a737d;
+  font-style: italic;
+}
+
+.syntax-keyword {
+  color: #d73a49;
+  font-weight: 700;
+}
+
+.syntax-string {
+  color: #032f62;
+}
+
+.syntax-number {
+  color: #005cc5;
+}
+
+.syntax-builtin {
+  color: #6f42c1;
+}
+
 @media (max-width: 960px) {
   .shell {
     grid-template-columns: 1fr;
