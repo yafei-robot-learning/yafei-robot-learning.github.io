@@ -3,68 +3,69 @@
 
 # Gradient-based Optimization
 ## Gradient descent
-Given Loss function $L(\boldsymbol{\theta})$, the gradient descent algorithm is shown as follows,
+Given Loss function $L(\boldsymbol{\theta})$, the gradient descent algorithm is shown as follows, where $\eta$ is the learning rate, `loss_criterion` could be `nn.MSELoss()`.
 
-\begin{algorithm}[H]
-\caption{Gradient descent}
-\label{algo_GD}
+```python
+def gradient_descent(loss_criterion, theta, eta, delta):
+    while True:
+        loss = loss_criterion(theta)
+        loss.backward()
 
-Initialize weights $\boldsymbol{\theta}$, e.g. $\boldsymbol{\theta} \sim \mathcal{N}(\mathbf{0}, \boldsymbol{\Sigma})$
+        with torch.no_grad():
+            grad = theta.grad
+            if grad.norm() <= delta:
+                break
+            theta -= eta * grad
 
-\While{\text{stopping criterion is NOT satisfied}}
-{
-    $\Delta \boldsymbol{\theta} = - \nabla_{\boldsymbol{\theta}}L(\boldsymbol{\theta})$ \\
-    
-    choose step size $\eta$ (this step is called line search)
-    
-    $\boldsymbol{\theta} \leftarrow \boldsymbol{\theta} - \eta \Delta \boldsymbol{\theta}$ 
-}
-\end{algorithm}
+        theta.grad.zero_()
+
+    return theta
+```
 
 One of the common stopping criterion is $||\nabla_{\boldsymbol{\theta}}L(\boldsymbol{\theta})||_2 \leq \delta$. Gradient descent is a first-order gradient-based optimization algorithm.
 
 ## Stochastic and batch gradient descent
 In gradient descent, the loss is the summation of all the data points with size $N$. This is time consuming if the data size is large. Thus we have stochastic gradient descent.
 
-\begin{algorithm}[H]
-\caption{Stochastic gradient descent}
-\label{algo_GD}
+```python
+def stochastic_gradient_descent(loss_criterion, theta, X, y, eta, delta):
+    N = X.shape[0]
+    while True:
+        i = torch.randint(0, N, (1,)).item()
+        loss = loss_criterion(theta, X[i], y[i])
+        loss.backward()
 
-Initialize weights $\boldsymbol{\theta}$, e.g. $\boldsymbol{\theta} \sim \mathcal{N}(\mathbf{0}, \boldsymbol{\Sigma})$
+        with torch.no_grad():
+            grad = theta.grad
+            if grad.norm() <= delta:
+                break
+            theta -= eta * grad
 
-\While{\text{stopping criterion is NOT satisfied}}
-{
-    randomly pick one sample $(\mathbf{x_i}, y_i), \forall i \in [1,N]$ \\
-    
-    $\Delta \boldsymbol{\theta} = - \nabla_{\boldsymbol{\theta}}L_i(\boldsymbol{\theta})$ \\
-    
-    choose step size $\eta$ \\
-    
-    $\boldsymbol{\theta} \leftarrow \boldsymbol{\theta} - \eta \Delta \boldsymbol{\theta}$ 
-}
-\end{algorithm}
+        theta.grad.zero_()
+
+    return theta
+```
 
 We can also take a mini-batch of sample each iteration instead of just one sample. 
 
-\begin{algorithm}[H]
-\caption{Batch gradient descent}
-\label{algo_GD}
+```python
+def batch_gradient_descent(loss_criterion, theta, X, y, B, eta, delta):
+    N = X.shape[0]
+    while True:
+        idx = torch.randint(0, N, (B,))
+        loss = loss_criterion(theta, X[idx], y[idx])
+        loss.backward()
 
-Initialize weights $\boldsymbol{\theta}$, e.g. $\boldsymbol{\theta} \sim \mathcal{N}(\mathbf{0}, \boldsymbol{\Sigma})$
+        with torch.no_grad():
+            grad = theta.grad
+            if grad.norm() <= delta:
+                break
+            theta -= eta * grad
 
-\While{\text{stopping criterion is NOT satisfied}}
-{
-    pick one batch of sample with size $B$. $([\mathbf{x_1}, y_1), \cdots (\mathbf{x_B}, y_B))]$ \\
-    
-    $L_B = \frac{1}{B} \sum_i L( \mathbf{x_i}, y_i, \boldsymbol{\theta})$ \\
-    
-    $\Delta \boldsymbol{\theta} = - \nabla_{\boldsymbol{\theta}}L_B(\boldsymbol{\theta})$ \\
-    
-    choose step size $\eta$ \\
-    
-    $\boldsymbol{\theta} \leftarrow \boldsymbol{\theta} - \eta \Delta \boldsymbol{\theta}$ 
-}
-\end{algorithm}
+        theta.grad.zero_()
+
+    return theta
+```
 
 ## Modern gradient-based optimizers
 ### Momentum
