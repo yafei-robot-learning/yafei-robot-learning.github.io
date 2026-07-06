@@ -4,7 +4,7 @@ $$
 \mathbf{T}_{WB}
 =
 \begin{bmatrix}
-\mathbf{R}_{WB} & \mathbf{p}_{WB} \\
+\mathbf{R}_{WB} & \mathbf{t}_{WB} \\
 \mathbf{0}^{\top} & 1
 \end{bmatrix}
 \in \text{SE}(3)
@@ -14,23 +14,26 @@ Sometimes for simplicity we drop the frame notations but it's important to be cl
 
 To drive the robot, we apply linear velocity $\mathbf{v}$ and angular velocity $\boldsymbol{\omega}$ through its actuators.
 $$
-\boldsymbol{\xi}_{B}
+{}_{B}\boldsymbol{\xi}_{WB}
 =
 \begin{bmatrix}
-\mathbf{v}_{B} \\
-\boldsymbol{\omega}_{B}
+{}_{B}\mathbf{v}_{WB} \\
+{}_{B}\boldsymbol{\omega}_{WB}
 \end{bmatrix}
 \in \mathbb{R}^{6}
 $$
 
-Here $\mathbf{v}_{B}$ and $\boldsymbol{\omega}_{B}$ are the linear and angular velocities of the body relative to the world, expressed in the body frame. The relative frames are omitted because they are clear from context; the right subscript indicates the frame in which the vector is expressed (see [this great tutorial](https://rpg.ifi.uzh.ch/docs/teaching/2025/FurgaleTutorial.pdf) for the full three-frame notation).
+Note here we need three frame notations to denote linear and angular velocities (see [this great blog post](https://rpg.ifi.uzh.ch/docs/teaching/2025/FurgaleTutorial.pdf)), which means velocity of the robot body relative to its world/inertial frame, expressed in its body frame.
 
-For example, we can re-express the angular velocity from the body frame in the world frame using $\mathbf{R}_{WB}$:
+One example is that we can re-express the angular velocity of a body in relative to the world, and expressed in body frame, in the world frame through rotation $\mathbf{R}_{WB}$. And a simplied notation could be $\boldsymbol{\omega}_B$ and $B$ means this physical quantity is expressed in the body frame. By default it says this is the velocity of the body in relative to the world/inertial frame. Some literatures use ${}_{B}\boldsymbol{\omega}$ but the right subscript style is typically easier to process mentally (and code!) when doing calculation.
 
 $$
-\boldsymbol{\omega}_{W}
-=
-\mathbf{R}_{WB}\boldsymbol{\omega}_{B}.
+\begin{gathered}
+{}_{\underline{W}}\boldsymbol{\omega}_{WB}
+\leftarrow \mathbf{R}_{\underline{WB \, {}_{B}}}\boldsymbol{\omega}_{WB} \\[0.75em]
+\Downarrow \quad \text{simplified} \\[0.75em]
+\boldsymbol{\omega}_{W} \leftarrow \mathbf{R}_{WB} \, \boldsymbol{\omega}_{B}
+\end{gathered}
 $$
 
 The robot state at time $t$ is often represented by it's pose, linear and angular velocities,
@@ -38,19 +41,19 @@ $$
 \mathbf{x}_t = \left\{\mathbf{T}_{WB}, \mathbf{v}_{B}, \boldsymbol{\omega}_{B} \right\}
 $$
 
-To associate the body-frame velocities with the robot pose $\mathbf{T} \in \text{SE}(3)$, we convert them into the Lie algebra $\boldsymbol{\xi}_{B}^{\wedge} \in \mathfrak{se}(3)$,
+To associate the velocities with the robot pose $\mathbf{T} \in \text{SE}(3)$, we convert these into the Lie Algebras $\boldsymbol{\xi}^{\wedge} \in \mathfrak{se}(3)$,
 $$
-\boldsymbol{\xi}_{B}^{\wedge}
+\boldsymbol{\xi}^{\wedge}
 =
 \begin{bmatrix}
-\boldsymbol{\omega}_{B}^{\wedge} & \mathbf{v}_{B} \\
+\boldsymbol{\omega}^{\wedge} & \mathbf{v} \\
 \mathbf{0}^{\top} & 0
 \end{bmatrix}
 \in \mathfrak{se}(3)
 $$
 
 $$
-\boldsymbol{\omega}_B ^{\wedge}
+\boldsymbol{\omega}^{\wedge}
 =
 \begin{bmatrix}
 0 & -\omega_z & \omega_y \\
@@ -66,7 +69,7 @@ $$
 =
 \mathbf{T}_{t}
 \exp\left(
-\boldsymbol{\xi}_{B}^{\wedge}\Delta t
+\boldsymbol{\xi}^{\wedge}\Delta t
 \right)
 $$
 
@@ -76,7 +79,7 @@ $$
 =
 \mathbf{p}_{t}
 +
-\mathbf{R}_{t}\mathbf{v}_{B}\Delta t
+\mathbf{R}_{t}\mathbf{v}\Delta t
 $$
 
 $$
@@ -84,7 +87,7 @@ $$
 =
 \mathbf{R}_{t}
 \exp\left(
-\boldsymbol{\omega}_{B}^{\wedge}\Delta t
+\boldsymbol{\omega}^{\wedge}\Delta t
 \right)
 $$
 
