@@ -12,7 +12,12 @@ function stripHtmlComments(markdown) {
 }
 
 function renderInlineText(text) {
-  return escapeHtml(text).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  return escapeHtml(text)
+    .replace(
+      /\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+      '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
+    )
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 }
 
 const pythonKeywords = new Set([
