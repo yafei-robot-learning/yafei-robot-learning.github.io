@@ -63,7 +63,7 @@ $$
 \in \mathfrak{so}(3)
 $$
 
-The new pose in the next time step is,
+The new pose in the next time step is, use righ-hand update rule,
 $$
 \mathbf{T}_{t+1}
 =
@@ -90,6 +90,38 @@ $$
 \boldsymbol{\omega}^{\wedge}\Delta t
 \right)
 $$
+
+Next we introduce a concept called Adjoint, which is the linear mapping that changes a twist $\boldsymbol{xi}$ from one coordinate frame to another using the full rigid-body transform.
+
+Give 3D transform $\mathbf{T}_{WB} \in \text{SE}(3)$, the Adjoint of $\mathbf{T}_{WB}$ transfer 3D twist from the body frame to the world frame,
+$$
+\boldsymbol\xi_W
+=
+\operatorname{Ad}_{\mathbf{T}_{WB}}\boldsymbol\xi_B
+$$
+
+Adjoint of $\mathbf{T}_{WB}$ is,
+$$
+\operatorname{Ad}_{\mathbf{T}_{WB}}
+=
+\begin{bmatrix}
+\mathbf{R}_{WB} & [\mathbf{t}_{WB}]_{\times}\mathbf{R}_{WB} \\
+\mathbf{0} & \mathbf{R}_{WB}
+\end{bmatrix}
+$$
+
+and its inverse,
+$$
+\operatorname{Ad}_{T_{WB}}^{-1}
+=
+\operatorname{Ad}_{T_{BW}}
+=
+\begin{bmatrix}
+\mathbf{R}_{WB}^{\top} & -\mathbf{R}_{WB}^{\top}[\mathbf{t}_{WB}]_{\times} \\
+\mathbf{0} & \mathbf{R}_{WB}^{\top}
+\end{bmatrix}
+$$
+
 
 ## 3D Rigid-body Dynamics
 
