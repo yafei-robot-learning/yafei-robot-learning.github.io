@@ -401,6 +401,26 @@ function buildBlocks(markdown) {
       continue;
     }
 
+    const detailsMatch = trimmed.match(/^<details(\s+open)?\s*>$/);
+    if (detailsMatch) {
+      flushParagraph();
+      blocks.push({ type: 'details-open', open: Boolean(detailsMatch[1]) });
+      continue;
+    }
+
+    if (trimmed === '</details>') {
+      flushParagraph();
+      blocks.push({ type: 'details-close' });
+      continue;
+    }
+
+    const summaryMatch = trimmed.match(/^<summary>(.*?)<\/summary>$/);
+    if (summaryMatch) {
+      flushParagraph();
+      blocks.push({ type: 'summary', text: summaryMatch[1] });
+      continue;
+    }
+
     if (trimmed === '') {
       flushParagraph();
       continue;
@@ -746,6 +766,18 @@ async function renderMarkdownNote(fileName, content) {
 
     content.innerHTML = renderedBlocks
       .map((block) => {
+        if (block.type === 'details-open') {
+          return `<details class="proof-block"${block.open ? ' open' : ''}>`;
+        }
+
+        if (block.type === 'details-close') {
+          return '</details>';
+        }
+
+        if (block.type === 'summary') {
+          return `<summary>${renderInlineText(block.text)}</summary>`;
+        }
+
         if (block.type === 'heading') {
           return `<h${block.level}>${escapeHtml(block.text)}</h${block.level}>`;
         }

@@ -1,12 +1,12 @@
 # Diffusion Models
 
-(Blue or black color does not mean anything in this note)
-
-## I. DDPM
+## I. Denoising Diffusion Probalisitic Model (DDPM)
 
 <!-- PDF page 1 -->
 
-Denoising process, called Stochastic Langevin Dynamics
+### Langevin dynamics, Gradient field, and Score function
+
+Denoising process, described by the Stochastic Langevin Dynamics
 
 $$
 \mathbf{x}^{k+1}=\alpha\left[\mathbf{x}^k-\gamma\boldsymbol{\epsilon}_\theta(\mathbf{x}^k,k)+\mathcal{N}(\mathbf{0},\sigma^2\mathbf{I})\right]
@@ -22,9 +22,19 @@ $$
 \mathbf{x}'=\mathbf{x}-\gamma\nabla_{\mathbf{x}}E(\mathbf{x})
 $$
 
-noise prediction network $\boldsymbol{\epsilon}_\theta(\mathbf{x},k)$ effectively predicts gradient field $\nabla E(\mathbf{x})$
+noise prediction network $\boldsymbol{\epsilon}_\theta(\mathbf{x},k)$ effectively predicts gradient field $\nabla E(\mathbf{x})$, hence,
+$$
+\boldsymbol{\epsilon}_\theta(\mathbf{x}_t,t)=\sigma_t\nabla_{\mathbf{x}_t}E(\mathbf{x}_t)
+$$
 
-### 1.1 proof of this relationship
+The negative gradient of the energy function is called the **score function**, which is also the gradient of the log probability density $p(\mathbf{x})$ with respect to $\mathbf{x}$.
+$$
+\nabla_{\mathbf{x}_t}\log p(\mathbf{x}_t)=-\nabla_{\mathbf{x}_t}E(\mathbf{x}_t)
+$$
+
+
+<details>
+<summary> proof of this relationship</summary>
 
 Based on Boltzmann distribution, the probability of an image
 
@@ -43,11 +53,12 @@ $$
 
 then take gradient over $\mathbf{x}_t$, on both sides
 
+
 $$
-\boxed{\nabla_{\mathbf{x}_t}\log p(\mathbf{x}_t)=-\nabla_{\mathbf{x}_t}E(\mathbf{x}_t)}
+\nabla_{\mathbf{x}_t}\log p(\mathbf{x}_t)=-\nabla_{\mathbf{x}_t}E(\mathbf{x}_t)
 $$
 
-which is called [score function]. Note this gradient is not w.r.t. model parameters $\theta$, but w.r.t. data images
+which is called score function. Note this gradient is not w.r.t. model parameters $\theta$, but w.r.t. data images
 
 Then, we talk about [forward] diffusion process.
 
@@ -204,6 +215,8 @@ $$
 
 so the noise prediction network's output is (negatively) proportional to the score function.
 
+</details>
+
 ### DDPM training loss function:
 
 $$
@@ -226,7 +239,10 @@ $$
 \min_\theta\mathbb{E}_{\mathbf{x}_0\sim q(\mathbf{x}_0)}[-\log p_\theta(\mathbf{x}_0)]
 $$
 
-since the distribution of the data $\mathbf{x}_0$, $p_\theta(\mathbf{x}_0)$, is not tractable, we will minimize a bound of this log likelihood.
+<details>
+<summary>Derivation: from maximum likelihood to the DDPM training loss</summary>
+
+Since the distribution of the data $\mathbf{x}_0$, $p_\theta(\mathbf{x}_0)$, is not tractable, we will minimize a bound of this log likelihood.
 
 <!-- PDF page 6 -->
 
@@ -870,7 +886,9 @@ $$
 \|\boldsymbol{\epsilon}-\boldsymbol{\epsilon}_\theta(\mathbf{x}_t,t)\|^2
 $$
 
-MSE loss we had before
+Thus we have the MSE loss we had before
+
+</details>
 
 <!-- PDF page 19 -->
 
