@@ -875,3 +875,110 @@ MSE loss we had before
 <!-- PDF page 19 -->
 
 ## Flow Matching models.
+
+The original paper is [Flow Matching for Generative Modeling](https://arxiv.org/abs/2210.02747). The following derivation starts with a linear path.
+
+### Noise, data, and a velocity field
+
+In this section, time runs from noise at $t=0$ to data at $t=1$. Denote a noise sample by $\mathbf{z}$ and a training sample by $\mathbf{y}$:
+
+$$
+\mathbf{z}\sim\mathcal{N}(\mathbf{0},\mathbf{I}),
+\qquad
+\mathbf{y}\sim q(\mathbf{y}),
+\qquad
+t\sim\mathcal{U}[0,1].
+$$
+
+Sample $\mathbf{z}$ and $\mathbf{y}$ independently. A neural network $\mathbf{v}_\theta(\mathbf{x},t)\in\mathbb{R}^d$ predicts the velocity at position $\mathbf{x}\in\mathbb{R}^d$ and time $t$.
+
+Generation follows an ordinary differential equation:
+
+$$
+\frac{d\hat{\mathbf{x}}_t}{dt}
+=\mathbf{v}_\theta(\hat{\mathbf{x}}_t,t),
+\qquad
+\hat{\mathbf{x}}_0=\mathbf{z}.
+$$
+
+The goal is for the distribution of $\hat{\mathbf{x}}_1$ to match the data distribution. This ODE model is a continuous normalizing flow. [Paper, Section 2](https://arxiv.org/html/2210.02747v2#S2)
+
+### A linear path and its training target
+
+For each sampled pair $(\mathbf{z},\mathbf{y})$, construct
+
+$$
+\mathbf{x}_t=(1-t)\mathbf{z}+t\mathbf{y}.
+$$
+
+Its endpoints are
+
+$$
+\mathbf{x}_{t=0}=\mathbf{z},
+\qquad
+\mathbf{x}_{t=1}=\mathbf{y}.
+$$
+
+Keep the endpoints fixed and differentiate with respect to time:
+
+$$
+\frac{d\mathbf{x}_t}{dt}
+=-\mathbf{z}+\mathbf{y}
+=\mathbf{y}-\mathbf{z}.
+$$
+
+Thus, each pair supplies both an intermediate sample and a known target velocity. Write that target as
+
+$$
+\mathbf{U}_t=\mathbf{y}-\mathbf{z}.
+$$
+
+Conditioned on $\mathbf{y}$, the intermediate distribution is Gaussian for $0\leq t<1$:
+
+$$
+p_t(\mathbf{x}\mid\mathbf{y})
+=\mathcal{N}\left(\mathbf{x};t\mathbf{y},(1-t)^2\mathbf{I}\right).
+$$
+
+Rearrange the interpolation:
+
+$$
+\mathbf{z}=\frac{\mathbf{x}_t-t\mathbf{y}}{1-t}.
+$$
+
+Substitute this into the velocity:
+
+$$
+\begin{aligned}
+\mathbf{y}-\mathbf{z}
+&=\mathbf{y}-\frac{\mathbf{x}_t-t\mathbf{y}}{1-t}\\
+&=\frac{\mathbf{y}-\mathbf{x}_t}{1-t}.
+\end{aligned}
+$$
+
+The corresponding conditional velocity field is therefore
+
+$$
+\mathbf{u}_t(\mathbf{x}\mid\mathbf{y})
+=\frac{\mathbf{y}-\mathbf{x}}{1-t},
+\qquad 0\leq t<1.
+$$
+
+Along the sampled path, $\mathbf{u}_t(\mathbf{x}_t\mid\mathbf{y})=\mathbf{y}-\mathbf{z}$. At $t=1$, the conditional distribution becomes a point mass at $\mathbf{y}$; the sampled-pair target remains $\mathbf{y}-\mathbf{z}$.
+
+### Conditional Flow Matching training loss
+
+Regress the predicted velocity onto the sampled-pair target:
+
+$$
+\mathcal{L}_{\mathrm{CFM}}(\theta)
+=\mathbb{E}_{t,\mathbf{z},\mathbf{y}}
+\left[
+\left\|
+\mathbf{v}_\theta\left((1-t)\mathbf{z}+t\mathbf{y},t\right)
+-(\mathbf{y}-\mathbf{z})
+\right\|^2
+\right]
+$$
+
+A training step consists of sampling a data batch, independent Gaussian noise, and one time per sample, then constructing $\mathbf{x}_t$ and minimizing this MSE. Training samples come directly from the interpolation, so an ODE solve is not needed during training.
