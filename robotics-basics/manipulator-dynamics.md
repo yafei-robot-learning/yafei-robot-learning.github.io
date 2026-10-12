@@ -32,3 +32,33 @@ $$
 This equation may have a unique solution, multiple solutions, or no solution at all.
 
 ## Manipulator Dynamics
+
+Before getting into the dynamics of a multi-joint manipulator system, we visit back to physics.
+
+
+
+For a fixed-base manipulator with $N$ joints, the equations of motion including contact forces are
+
+$$
+\mathbf{M}(\boldsymbol{\theta})\ddot{\boldsymbol{\theta}}
++ \mathbf{C}(\boldsymbol{\theta},\dot{\boldsymbol{\theta}})\dot{\boldsymbol{\theta}}
++ \mathbf{g}(\boldsymbol{\theta})
+= \boldsymbol{\tau}
++ \sum \mathbf{J}(\boldsymbol{\theta})^{\top}\mathbf{w}
+$$
+
+where:
+
+$\boldsymbol{\theta},\dot{\boldsymbol{\theta}},\ddot{\boldsymbol{\theta}}\in\mathbb{R}^{N}$ are the joint positions (rad), angular velocities (rad/$s$), and angular accelerations (rad/$s^2$) (using local coordinates for joint angles).
+
+$\mathbf{M}(\boldsymbol{\theta})\in\mathbb{R}^{N\times N}$ is the joint-space inertia matrix, determined by the mass and mass distributions of the links.
+
+$\mathbf{C}(\boldsymbol{\theta},\dot{\boldsymbol{\theta}})\dot{\boldsymbol{\theta}}$ contains the Coriolis and centrifugal terms.
+
+$\mathbf{g}(\boldsymbol{\theta})\in\mathbb{R}^{N}$ contains the gravitational terms.
+
+$\boldsymbol{\tau}\in\mathbb{R}^{N}$ is the actuator torques (or forces for prismatic joints).
+
+$\mathbf{w}\in\mathbb{R}^{m}$ stacks the external wrench exerted by the environment on the robot, e.g. contact force.
+
+$\mathbf{J}(\boldsymbol{\theta})\in\mathbb{R}^{m\times N}$, the Jacobian, maps joint velocities (in joint space) to end-effector velocities (in task space); its transpose maps external wrench to joint torques.
