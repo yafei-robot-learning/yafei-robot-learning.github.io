@@ -12,6 +12,10 @@ $$
 \mathbf{x}^{k+1}=\alpha\left[\mathbf{x}^k-\gamma\boldsymbol{\epsilon}_\theta(\mathbf{x}^k,k)+\mathcal{N}(\mathbf{0},\sigma^2\mathbf{I})\right]
 $$
 
+where $\mathbf{x}$ denotes a data sample, such as one full image, a video clip, or a sequence of actions from robot policy.
+
+$mathbf{x}^k$ is the noisy sample at denoising iteration $k$.
+
 Gaussian noise added, key to make diffusion work
 
 $$
@@ -34,7 +38,7 @@ $$
 
 
 <details>
-<summary> proof of this relationship</summary>
+<summary> proof of noise prediction is proportional to score function</summary>
 
 Based on Boltzmann distribution, the probability of an image
 
@@ -951,6 +955,9 @@ $$
 \mathbf{U}_t=\mathbf{y}-\mathbf{z}.
 $$
 
+<details>
+<summary>Derivation: the conditional Gaussian path and velocity field</summary>
+
 Conditioned on $\mathbf{y}$, the intermediate distribution is Gaussian for $0\leq t<1$:
 
 $$
@@ -984,6 +991,8 @@ $$
 
 Along the sampled path, $\mathbf{u}_t(\mathbf{x}_t\mid\mathbf{y})=\mathbf{y}-\mathbf{z}$. At $t=1$, the conditional distribution becomes a point mass at $\mathbf{y}$; the sampled-pair target remains $\mathbf{y}-\mathbf{z}$.
 
+</details>
+
 ### Conditional Flow Matching training loss
 
 Regress the predicted velocity onto the sampled-pair target:
@@ -1000,3 +1009,81 @@ $$
 $$
 
 A training step consists of sampling a data batch, independent Gaussian noise, and one time per sample, then constructing $\mathbf{x}_t$ and minimizing this MSE. Training samples come directly from the interpolation, so an ODE solve is not needed during training.
+
+### Connection between Flow Matching and DDPM
+
+**DDPM uses stochastic reverse transitions; Flow Matching learns an ODE velocity.** Diffusion also has a deterministic probability-flow ODE that connects the two.
+
+Use $s$ for data-to-noise diffusion time and $t=1-s$ for noise-to-data generation. The score is $\mathbf{s}_s(\mathbf{x})=\nabla_{\mathbf{x}}\log p_s(\mathbf{x})$. For the continuous-time variance-preserving diffusion underlying DDPM, $\mathbf{f}(\mathbf{x},s)=-\frac{1}{2}\beta(s)\mathbf{x}$ and $g(s)=\sqrt{\beta(s)}$.
+
+The reverse **SDE** includes Brownian noise:
+
+$$
+d\hat{\mathbf{x}}_t
+=\left[
+-\mathbf{f}(\hat{\mathbf{x}}_t,1-t)
++g^2(1-t)\mathbf{s}_{1-t}(\hat{\mathbf{x}}_t)
+\right]dt
++g(1-t)\,d\bar{\mathbf{W}}_t.
+$$
+
+The probability-flow **ODE** is
+
+$$
+\frac{d\hat{\mathbf{x}}_t}{dt}
+=\mathbf{v}_{\mathrm{PF}}(\hat{\mathbf{x}}_t,t)
+=-\mathbf{f}(\hat{\mathbf{x}}_t,1-t)
++\frac{1}{2}g^2(1-t)\mathbf{s}_{1-t}(\hat{\mathbf{x}}_t).
+$$
+
+The ODE halves the score coefficient and has no Brownian term. With the exact score and matching initial distribution, it shares the SDE's marginal distributions. Its trajectory is deterministic given the initial noise sample. [SDE–ODE connection](https://yang-song.net/blog/2021/score/#probability-flow-ode)
+
+Flow Matching learns this velocity when using the reversed diffusion path. The linear path chooses a different density evolution. [Flow Matching paper, Section 4.1](https://arxiv.org/html/2210.02747v2#S4.SS1)
+
+**Noise prediction and velocity prediction** are related through the same Gaussian path:
+
+$$
+\mathbf{x}_t=a(t)\mathbf{y}+b(t)\mathbf{z},
+\qquad\mathbf{z}\sim\mathcal{N}(\mathbf{0},\mathbf{I}).
+$$
+
+Reversed diffusion uses $a(t)=\sqrt{\bar{\alpha}(1-t)}$, $b(t)=\sqrt{1-\bar{\alpha}(1-t)}$; linear Flow Matching uses $a(t)=t$, $b(t)=1-t$.
+
+A velocity parameterized through a noise predictor on this path is
+
+$$
+\mathbf{v}_\theta(\mathbf{x}_t,t)
+=\frac{\dot a(t)}{a(t)}\mathbf{x}_t
++\left[\dot b(t)-\frac{\dot a(t)b(t)}{a(t)}\right]
+\hat{\boldsymbol{\epsilon}}_\theta(\mathbf{x}_t,t),
+\qquad a(t)>0.
+$$
+
+Evaluate a DDPM predictor at forward time $s=1-t$. For the linear path, the conversion becomes $\mathbf{v}_\theta=(\mathbf{x}_t-\hat{\boldsymbol{\epsilon}}_\theta)/t$ for $0<t<1$.
+
+<details>
+<summary>Derivation: noise prediction to velocity prediction</summary>
+
+Differentiate at fixed data $\mathbf{y}$ and noise $\mathbf{z}$, then eliminate $\mathbf{y}$:
+
+$$
+\begin{aligned}
+\frac{d\mathbf{x}_t}{dt}
+&=\dot a(t)\mathbf{y}+\dot b(t)\mathbf{z},
+\qquad\mathbf{y}=\frac{\mathbf{x}_t-b(t)\mathbf{z}}{a(t)},\\
+&=\frac{\dot a(t)}{a(t)}\mathbf{x}_t
++\left[\dot b(t)-\frac{\dot a(t)b(t)}{a(t)}\right]\mathbf{z}.
+\end{aligned}
+$$
+
+Taking the conditional expectation replaces $\mathbf{z}$ with $\boldsymbol{\epsilon}^*(\mathbf{x}_t,t)=\mathbb{E}[\mathbf{z}\mid\mathbf{x}_t,t]$, giving the marginal velocity. For the reversed diffusion path, its score also satisfies
+
+$$
+\mathbf{s}_{1-t}(\mathbf{x})
+=-\frac{\boldsymbol{\epsilon}^*(\mathbf{x},t)}{b(t)},
+\qquad b(t)>0.
+$$
+
+Thus noise, score, and ODE velocity are connected parameterizations for a fixed path. Their MSE objectives can have different timestep weights.
+
+</details>
