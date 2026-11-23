@@ -383,7 +383,7 @@ $$Q(s, a) = \mathbb{E} \left[ r_t + \gamma V(s_{t+1}) | s_t = s, a_t = a\right]$
 Illustration of one-step look-ahead:
 
 <div align="center">
-  <img src="figs/onesteplookahead_illus.png" alt="One-step look-ahead illustration" width="40%">
+  <img src="figs/onesteplookahead_illus.png" alt="One-step look-ahead illustration" width="20%">
 </div>
 
 {Policy Improvement}
