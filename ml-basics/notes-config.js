@@ -22,5 +22,10 @@ window.NOTES_CONFIG = {
       file: 'md/unsupervised.md',
       path: 'note.html?note=unsupervised.md',
     },
+    {
+      title: 'Diffusion Models',
+      file: 'md/diffusion.md',
+      path: 'note.html?note=diffusion.md',
+    },
   ],
 };
